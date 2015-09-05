@@ -4,11 +4,14 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
 	"github.com/namsral/flag"
 )
+
+const NAME string = "expiredis"
 
 var (
 	verbose     bool
@@ -29,18 +32,21 @@ var (
 )
 
 func main() {
-	flag.BoolVar(&verbose, "verbose", false, "debug logging")
-	flag.BoolVar(&dryRun, "dry-run", false, "dry run, no destructive commands")
-	flag.StringVar(&url, "url", "redis://", "URI of Redis server (https://www.iana.org/assignments/uri-schemes/prov/redis)")
-	flag.StringVar(&pattern, "pattern", "*", "Pattern of keys to process")
-	flag.IntVar(&limit, "limit", 100, "Maximum number keys to process")
-	flag.IntVar(&count, "count", 100, "Keys to fetch in each batch")
-	flag.Int64Var(&delay, "delay", 0, "Delay in ms between batches")
-	flag.IntVar(&ttlSet, "set-ttl", 0, "Set TTL in seconds of matched keys")
-	flag.IntVar(&ttlSubtract, "subtract-ttl", 0, "Seconds to subtract from TTL of matched keys")
-	flag.BoolVar(&deleteKeys, "delete", false, "Delete matched keys")
-	flag.IntVar(&ttlMin, "ttl-min", 0, "Minimum TTL for a key to be processed. Use -1 to match no TTL.")
-	flag.Parse()
+	// config environment variables should be prefixed with "EXPIREDIS_"
+	fs := flag.NewFlagSetWithEnvPrefix(NAME, strings.ToUpper(NAME), flag.ExitOnError)
+
+	fs.BoolVar(&verbose, "verbose", false, "debug logging")
+	fs.BoolVar(&dryRun, "dry-run", false, "dry run, no destructive commands")
+	fs.StringVar(&url, "url", "redis://", "URI of Redis server (https://www.iana.org/assignments/uri-schemes/prov/redis)")
+	fs.StringVar(&pattern, "pattern", "*", "Pattern of keys to process")
+	fs.IntVar(&limit, "limit", 100, "Maximum number keys to process")
+	fs.IntVar(&count, "count", 100, "Keys to fetch in each batch")
+	fs.Int64Var(&delay, "delay", 0, "Delay in ms between batches")
+	fs.IntVar(&ttlSet, "set-ttl", 0, "Set TTL in seconds of matched keys")
+	fs.IntVar(&ttlSubtract, "subtract-ttl", 0, "Seconds to subtract from TTL of matched keys")
+	fs.BoolVar(&deleteKeys, "delete", false, "Delete matched keys")
+	fs.IntVar(&ttlMin, "ttl-min", 0, "Minimum TTL for a key to be processed. Use -1 to match no TTL.")
+	fs.Parse(os.Args[1:])
 
 	logger.debug = log.New(os.Stderr, "[debug] ", log.LstdFlags)
 	logger.info = log.New(os.Stderr, "[info] ", log.LstdFlags)
