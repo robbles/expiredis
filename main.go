@@ -54,20 +54,22 @@ func main() {
 	}
 	defer c.Close()
 
-	logger.debug.Println("Connected to redis server at", url)
+	logger.info.Println("Connected to redis server at", url)
 	if dryRun {
 		logger.info.Println("Dry-run mode: destructive commands skipped")
 	}
 
+	done := make(chan func())
 	scan_stats := make(chan int, 0)
 	keys_stats := make(chan int, 0)
 	expired_stats := make(chan int, 0)
-	go stats(scan_stats, keys_stats, expired_stats)
+	go stats(done, scan_stats, keys_stats, expired_stats)
 
 	var scan struct {
-		cursor int
-		batch  []string
-		total  int
+		cursor   int
+		batch    []string
+		total    int
+		complete bool
 	}
 	scan.cursor = 0
 	scan.total = 0
@@ -92,7 +94,8 @@ func main() {
 
 			if limit >= 0 && scan.total >= limit {
 				logger.info.Println("Reached limit of", limit, "keys")
-				return
+				scan.complete = true
+				break
 			}
 
 			if processKey(c, key) {
@@ -100,18 +103,21 @@ func main() {
 			}
 		}
 
-		if scan.cursor == 0 {
-			return
-		}
-
-		logger.debug.Println("Next cursor is", scan.cursor)
 		scan_stats <- 1
 		keys_stats <- len(scan.batch)
+
+		if scan.cursor == 0 || scan.complete {
+			break
+		}
+		logger.debug.Println("Next cursor is", scan.cursor)
 
 		if delay > 0 {
 			time.Sleep(time.Duration(delay) * time.Millisecond)
 		}
 	}
+
+	// Read a callback from stats and call it to print final results
+	(<-done)()
 }
 
 func processKey(c redis.Conn, key string) (expired bool) {
@@ -195,11 +201,16 @@ func matchTTL(ttl int, ttlMin int) bool {
 	return false
 }
 
-func stats(scans chan int, keys chan int, expired chan int) {
+func stats(done chan func(), scans chan int, keys chan int, expired chan int) {
 	timer := time.Tick(1 * time.Second)
 	scan_count := 0
 	keys_count := 0
 	expired_count := 0
+
+	printStats := func() {
+		logger.info.Printf("Stats: scans=%d keys=%d expires=%d\n",
+			scan_count, keys_count, expired_count)
+	}
 
 	for {
 		select {
@@ -213,8 +224,10 @@ func stats(scans chan int, keys chan int, expired chan int) {
 			expired_count += n
 
 		case <-timer:
-			logger.info.Printf("Stats: scans=%d keys=%d expires=%d\n",
-				scan_count, keys_count, expired_count)
+			printStats()
+
+		case done <- printStats:
+			break
 		}
 	}
 }
