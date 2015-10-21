@@ -131,11 +131,12 @@ func processKey(c redis.Conn, key string) (expired bool) {
 
 	// Only fetch TTL if we need it for minimum threshold or subtracting
 	if ttlMin != 0 || ttlSubtract != 0 {
-		ttl, err := redis.Int(c.Do("TTL", key))
+		result, err := redis.Int(c.Do("TTL", key))
 		if err != nil {
 			logger.info.Println("Failed to get TTL for key", key)
 			return
 		}
+		ttl = result
 
 		logger.debug.Println("TTL of", ttl, "for key", key)
 	}
