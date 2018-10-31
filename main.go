@@ -36,7 +36,7 @@ func main() {
 	fs := flag.NewFlagSetWithEnvPrefix(NAME, strings.ToUpper(NAME), flag.ExitOnError)
 
 	fs.BoolVar(&verbose, "verbose", false, "debug logging")
-	fs.BoolVar(&dryRun, "dry-run", false, "dry run, no destructive commands")
+	fs.BoolVar(&dryRun, "dry-run", true, "dry run, no destructive commands")
 	fs.StringVar(&url, "url", "redis://", "URI of Redis server (https://www.iana.org/assignments/uri-schemes/prov/redis)")
 	fs.StringVar(&pattern, "pattern", "*", "Pattern of keys to process")
 	fs.IntVar(&limit, "limit", 100, "Maximum number keys to process")

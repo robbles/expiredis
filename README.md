@@ -20,15 +20,15 @@ Usage of ./expiredis:
 Set a TTL of 3600 (1 hour) for all keys without a TTL, processing 1000 keys at a time
 
 ```bash
-expiredis -limit -1 -count 1000 -set-ttl 3600
+expiredis -limit -1 -count 1000 -set-ttl 3600 -dry-run=false
 ```
 
 Delete all keys matching `foo:*`
 ```bash
-expiredis -limit -1 -pattern "foo:*" -delete
+expiredis -limit -1 -pattern "foo:*" -delete -dry-run=false
 ```
 
 Reduce expiry by 86400 seconds of keys matching `bar:*` with a minimum TTL of 86400 (1 day)
 ```bash
-expiredis -limit -1 -pattern "bar:*" -subtract-ttl 86400
+expiredis -limit -1 -pattern "bar:*" -subtract-ttl 86400 -dry-run=false
 ```
